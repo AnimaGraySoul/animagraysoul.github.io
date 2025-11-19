@@ -79,6 +79,13 @@
       .user-name {
         font-weight: bold;
       }
+      .top-1-name {
+        background: linear-gradient(90deg, #ffffff, #cccccc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: bold;
+      }
       .time {
         color: #e0e0e0;
       }
@@ -97,7 +104,7 @@
       .user-header {
         font-weight: bold;
         font-size: 1.1em;
-        color: #ffffff;
+        color: #cccccc;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -146,6 +153,11 @@
       }
       .top-item.top-player {
         background: linear-gradient(90deg, #353535, #252525);
+      }
+      .top-item.top-1-player {
+        background: linear-gradient(90deg, #454545, #252525);
+        border: 2px solid #cccccc;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
       }
       .wr-count {
         color: #e0e0e0;
@@ -221,6 +233,7 @@
       let userResults = {};
       let wrCounts = {};
       let currentTab = "leaderboard";
+      let top1Player = "";
 
       async function fetchData(url, isObjects = false) {
         try {
@@ -324,6 +337,18 @@
         return wrCounts;
       }
 
+      function getTop1Player(wrCounts) {
+        let topPlayer = "";
+        let maxCount = 0;
+        Object.entries(wrCounts).forEach(([user, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            topPlayer = user;
+          }
+        });
+        return topPlayer;
+      }
+
       function parseSearchQuery(query) {
         query = query.trim();
         if (/^\d+$/.test(query)) {
@@ -365,7 +390,9 @@
             foundResults = true;
             html += `<div class="section"><h2 class="section-title">${objectName}</h2>`;
             groups[key].results.forEach((result, index) => {
-              html += `<div class="score-item"><span class="user-name">${
+              const userNameClass =
+                result.user === top1Player ? "top-1-name" : "";
+              html += `<div class="score-item"><span class="user-name ${userNameClass}">${
                 index + 1
               }. ${result.user}</span><span class="time">${result.time.toFixed(
                 2
@@ -390,7 +417,8 @@
             return;
           if (userResults[userName]) {
             foundResults = true;
-            html += `<div class="user-results" data-user-index="${userIndex}"><div class="user-header" role="button" tabindex="0" aria-expanded="false"><span>${userName}</span><svg class="expand-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg></div><div class="user-results-list" aria-hidden="true">`;
+            const userNameClass = userName === top1Player ? "top-1-name" : "";
+            html += `<div class="user-results" data-user-index="${userIndex}"><div class="user-header" role="button" tabindex="0" aria-expanded="false"><span class="${userNameClass}">${userName}</span><svg class="expand-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg></div><div class="user-results-list" aria-hidden="true">`;
             userResults[userName].results.forEach((result, index) => {
               html += `<div class="user-result-item"><span>${
                 result.objectName
@@ -460,12 +488,18 @@
           for (let i = 0; i < displayedPlayers.length; i++) {
             const player = displayedPlayers[i];
             const isTopPlayer = top5Players.has(player.user);
-            const topClass = isTopPlayer ? "top-player" : "";
+            const isTop1Player = player.rank === 1;
+            const topClass = isTop1Player
+              ? "top-1-player"
+              : isTopPlayer
+              ? "top-player"
+              : "";
+            const userNameClass = isTop1Player ? "top-1-name" : "";
             html += `
               <div class="top-item ${topClass}">
                 <div class="user-info">
                   <span class="rank">${player.rank}.</span>
-                  <span class="user-name">${player.user}</span>
+                  <span class="user-name ${userNameClass}">${player.user}</span>
                 </div>
                 <span class="wr-count">${player.count} WR</span>
               </div>
@@ -611,6 +645,7 @@
         leaderboardResults = groupByObject(results);
         userResults = groupByUser(results);
         wrCounts = calculateWRCounts(leaderboardResults);
+        top1Player = getTop1Player(wrCounts);
         displayContent();
         init();
       });
