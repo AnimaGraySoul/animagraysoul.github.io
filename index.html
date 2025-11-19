@@ -68,11 +68,6 @@
       .section {
         margin-bottom: 40px;
       }
-      .section-title {
-        margin-bottom: 15px;
-        color: #ffffff;
-        font-size: 1.4em;
-      }
       .score-item {
         background: #252525;
         padding: 12px;
@@ -140,6 +135,33 @@
       .expand-icon.expanded {
         transform: rotate(180deg);
       }
+      .top-item {
+        background: #252525;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .top-item.top-player {
+        background: linear-gradient(90deg, #353535, #252525);
+      }
+      .wr-count {
+        color: #e0e0e0;
+        font-weight: bold;
+      }
+      .rank {
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-right: 10px;
+        min-width: 30px;
+      }
+      .user-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+      }
       ::selection {
         background: #808080aa;
         color: #ccc;
@@ -174,6 +196,9 @@
       <button class="tab-btn" data-tab="users">
         <img src="users.svg" alt="Users" class="tab-icon" />
       </button>
+      <button class="tab-btn" data-tab="top">
+        <img src="top.svg" alt="Top" class="tab-icon" />
+      </button>
     </div>
 
     <div class="search-container">
@@ -194,6 +219,7 @@
       let objects = [];
       let leaderboardResults = {};
       let userResults = {};
+      let wrCounts = {};
       let currentTab = "leaderboard";
 
       async function fetchData(url, isObjects = false) {
@@ -278,6 +304,52 @@
         return groups;
       }
 
+      function calculateWRCounts(groups) {
+        const wrCounts = {};
+        Object.keys(groups).forEach((objectId) => {
+          const objectResults = groups[objectId].results;
+          if (objectResults.length > 0) {
+            const bestTime = objectResults[0].time;
+            const wrHolders = objectResults.filter(
+              (result) => result.time === bestTime
+            );
+            wrHolders.forEach((holder) => {
+              if (!wrCounts[holder.user]) {
+                wrCounts[holder.user] = 0;
+              }
+              wrCounts[holder.user]++;
+            });
+          }
+        });
+        return wrCounts;
+      }
+
+      function parseSearchQuery(query) {
+        query = query.trim();
+        if (/^\d+$/.test(query)) {
+          const num = parseInt(query);
+          return (count, user) => count === num;
+        }
+        if (/^>\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^>\s*(\d+)$/)[1]);
+          return (count, user) => count > num;
+        }
+        if (/^>=\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^>=\s*(\d+)$/)[1]);
+          return (count, user) => count >= num;
+        }
+        if (/^<\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^<\s*(\d+)$/)[1]);
+          return (count, user) => count < num;
+        }
+        if (/^<=\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^<=\s*(\d+)$/)[1]);
+          return (count, user) => count <= num;
+        }
+        return (count, user) =>
+          user.toLowerCase().includes(query.toLowerCase());
+      }
+
       function displayLeaderboard(groups) {
         const searchTerm = document
           .getElementById("searchInput")
@@ -344,6 +416,64 @@
             }
           });
         });
+      }
+
+      function displayTop() {
+        const searchTerm = document.getElementById("searchInput").value.trim();
+        const filterFunction = parseSearchQuery(searchTerm);
+        let allPlayers = Object.entries(wrCounts)
+          .map(([user, count]) => ({ user, count }))
+          .sort((a, b) => b.count - a.count);
+        if (allPlayers.length === 0) {
+          document.getElementById(
+            "content"
+          ).innerHTML = `<div class="section"><div class="no-results">No players found</div></div>`;
+          return;
+        }
+        const playersWithRanks = [];
+        let currentRank = 1;
+        let previousCount = allPlayers[0].count;
+        for (let i = 0; i < allPlayers.length; i++) {
+          if (i > 0 && allPlayers[i].count < previousCount) {
+            currentRank++;
+            previousCount = allPlayers[i].count;
+          }
+          playersWithRanks.push({
+            user: allPlayers[i].user,
+            count: allPlayers[i].count,
+            rank: currentRank,
+          });
+        }
+        const top5Players = new Set(
+          playersWithRanks.filter((p) => p.rank <= 5).map((p) => p.user)
+        );
+        let displayedPlayers = playersWithRanks;
+        if (searchTerm) {
+          displayedPlayers = playersWithRanks.filter((player) =>
+            filterFunction(player.count, player.user)
+          );
+        }
+        let html = `<div class="section">`;
+        if (displayedPlayers.length === 0) {
+          html += `<div class="no-results">No players found</div>`;
+        } else {
+          for (let i = 0; i < displayedPlayers.length; i++) {
+            const player = displayedPlayers[i];
+            const isTopPlayer = top5Players.has(player.user);
+            const topClass = isTopPlayer ? "top-player" : "";
+            html += `
+              <div class="top-item ${topClass}">
+                <div class="user-info">
+                  <span class="rank">${player.rank}.</span>
+                  <span class="user-name">${player.user}</span>
+                </div>
+                <span class="wr-count">${player.count} WR</span>
+              </div>
+            `;
+          }
+        }
+        html += `</div>`;
+        document.getElementById("content").innerHTML = html;
       }
 
       function toggleUserResults(header) {
@@ -432,14 +562,6 @@
         });
         const btn = document.querySelector(`[data-tab="${tab}"]`);
         if (btn) btn.classList.add("active");
-        const searchInput = document.getElementById("searchInput");
-        switch (tab) {
-          case "users":
-            searchInput.placeholder = "";
-            break;
-          default:
-            searchInput.placeholder = "";
-        }
         displayContent();
       }
 
@@ -447,6 +569,9 @@
         switch (currentTab) {
           case "users":
             displayUsers();
+            break;
+          case "top":
+            displayTop();
             break;
           default:
             displayLeaderboard(leaderboardResults);
@@ -485,6 +610,7 @@
         const results = await fetchResults();
         leaderboardResults = groupByObject(results);
         userResults = groupByUser(results);
+        wrCounts = calculateWRCounts(leaderboardResults);
         displayContent();
         init();
       });
