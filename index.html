@@ -263,21 +263,51 @@
           const response = await fetch(leaderboardUrl);
           const csvText = await response.text();
           const lines = csvText.split("\n");
+
+          const allowedIds = new Set();
+          for (let i = 1; i < lines.length; i++) {
+            const cells = lines[i].split(",");
+            if (cells[3] && cells[3].trim() !== "") {
+              const parsed = parseInt(cells[3].trim(), 10);
+              if (!Number.isNaN(parsed)) {
+                allowedIds.add(parsed);
+              }
+            }
+          }
+
           const results = [];
           for (let i = 1; i < lines.length; i++) {
             const cells = lines[i].split(",");
-            if (cells[3] && cells[4] && cells[5]) {
-              const objectId = parseInt(cells[3].trim()) - 1;
-              const userId = parseInt(cells[4].trim()) - 1;
-              const time = parseFloat(cells[5].trim());
-              if (objects[objectId] && users[userId]) {
-                results.push({
-                  objectId: objectId,
-                  objectName: objects[objectId].name,
-                  user: users[userId],
-                  time: time,
-                });
-              }
+
+            const rowId = i;
+
+            if (!allowedIds.has(rowId)) continue;
+
+            if (!(cells[0] && cells[1] && cells[2])) continue;
+
+            const objectIdRaw = parseInt(cells[0].trim(), 10);
+            const userIdRaw = parseInt(cells[1].trim(), 10);
+            const timeRaw = parseFloat(cells[2].trim());
+
+            if (
+              Number.isNaN(objectIdRaw) ||
+              Number.isNaN(userIdRaw) ||
+              Number.isNaN(timeRaw)
+            ) {
+              continue;
+            }
+
+            const objectId = objectIdRaw - 1;
+            const userId = userIdRaw - 1;
+            const time = timeRaw;
+
+            if (objects[objectId] && users[userId]) {
+              results.push({
+                objectId: objectId,
+                objectName: objects[objectId].name,
+                user: users[userId],
+                time: time,
+              });
             }
           }
           return results;
