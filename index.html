@@ -324,7 +324,7 @@
           if (objectResults.length > 0) {
             const bestTime = objectResults[0].time;
             const wrHolders = objectResults.filter(
-              (result) => result.time === bestTime
+              (result) => Math.abs(result.time - bestTime) < 1e-9
             );
             wrHolders.forEach((holder) => {
               if (!wrCounts[holder.user]) {
@@ -389,12 +389,23 @@
           if (groups[key]) {
             foundResults = true;
             html += `<div class="section"><h2 class="section-title">${objectName}</h2>`;
+            let currentRank = 1;
+            let previousTime = null;
             groups[key].results.forEach((result, index) => {
+              if (index === 0) {
+                currentRank = 1;
+                previousTime = result.time;
+              } else {
+                if (Math.abs(result.time - previousTime) > 1e-9) {
+                  currentRank++;
+                  previousTime = result.time;
+                }
+              }
               const userNameClass =
                 result.user === top1Player ? "top-1-name" : "";
-              html += `<div class="score-item"><span class="user-name ${userNameClass}">${
-                index + 1
-              }. ${result.user}</span><span class="time">${result.time.toFixed(
+              html += `<div class="score-item"><span class="user-name ${userNameClass}">${currentRank}. ${
+                result.user
+              }</span><span class="time">${result.time.toFixed(
                 2
               )}s</span></div>`;
             });
