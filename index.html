@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <title>Leaderboard</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .tabs {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 20px;
+        gap: 10px;
+      }
+      .tab-btn {
+        padding: 10px 20px;
+        background-color: #252525;
+        border: 1px solid #333;
+        border-radius: 6px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tab-btn:hover {
+        background-color: #333;
+      }
+      .tab-btn.active {
+        background-color: #555;
+        border-color: #777;
+      }
+      .tab-icon {
+        width: 24px;
+        height: 24px;
+        filter: invert(0.8);
+      }
+      .search-container {
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .search-input {
+        width: 100%;
+        max-width: 400px;
+        padding: 12px;
+        border: 1px solid #333;
+        border-radius: 8px;
+        background-color: #252525;
+        color: #e0e0e0;
+        font-size: 16px;
+      }
+      .search-input:focus {
+        outline: none;
+        border-color: #555;
+      }
+      .section {
+        margin-bottom: 40px;
+      }
+      .score-item {
+        background: #252525;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .user-name {
+        font-weight: bold;
+      }
+      .top-1-name {
+        background: linear-gradient(90deg, #ffffff, #cccccc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: bold;
+      }
+      .time {
+        color: #e0e0e0;
+      }
+      .no-results {
+        text-align: center;
+        color: #888;
+        font-style: italic;
+        margin-top: 20px;
+      }
+      .user-results {
+        background: #252525;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+      .user-header {
+        font-weight: bold;
+        font-size: 1.1em;
+        color: #cccccc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        padding: 15px;
+        transition: background-color 0.2s ease;
+      }
+      .user-header:hover {
+        background-color: #333;
+      }
+      .user-results-list {
+        height: 0;
+        overflow: hidden;
+        transition: height 250ms ease;
+        will-change: height;
+      }
+      .user-results-list.scrollable {
+        overflow: auto;
+      }
+      .user-result-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 15px;
+        background-color: #2a2a2a;
+      }
+      .user-result-item:nth-child(even) {
+        background-color: #252525;
+      }
+      .expand-icon {
+        width: 16px;
+        height: 16px;
+        transition: transform 0.3s ease;
+        filter: invert(0.8);
+      }
+      .expand-icon.expanded {
+        transform: rotate(180deg);
+      }
+      .top-item {
+        background: #252525;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .user-results.top-player {
+        background: linear-gradient(90deg, #2b2b2b 0%, #262626 100%);
+        border-left: 4px solid #3a3a3a;
+      }
+      .user-results.top-1-player {
+        background: linear-gradient(90deg, #303030 0%, #262626 100%);
+        border: 2px solid #4a4a4a;
+        box-shadow: 0 6px 12px #0000000f;
+      }
+      .wr-count {
+        color: #e0e0e0;
+        font-weight: bold;
+      }
+      .rank {
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-right: 10px;
+        min-width: 30px;
+      }
+      .user-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+      }
+      .user-wr-count {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-left: auto;
+        background: none;
+      }
+      ::selection {
+        background: #808080aa;
+        color: #ccc;
+      }
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 6px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #666;
+      }
+      ::-webkit-scrollbar-thumb:active {
+        background: #888;
+      }
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: #444 #1a1a1a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="leaderboard">
+        <img src="leaderboard.svg" alt="Leaderboard" class="tab-icon" />
+      </button>
+      <button class="tab-btn" data-tab="users">
+        <img src="users.svg" alt="Users" class="tab-icon" />
+      </button>
+    </div>
+
+    <div class="search-container">
+      <input type="text" id="searchInput" class="search-input" />
+    </div>
+
+    <div id="content"></div>
+
+    <script>
+      const usersUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlduY1vt3BXg9eFp770mae8bjMi36YVPnbSaVkfU_4a53qghaVLuYBoq6rhS6gJ_Qx357uZqdeGKJK/pub?gid=0&single=true&output=csv";
+      const objectsUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlduY1vt3BXg9eFp770mae8bjMi36YVPnbSaVkfU_4a53qghaVLuYBoq6rhS6gJ_Qx357uZqdeGKJK/pub?gid=775717868&single=true&output=csv";
+      const leaderboardUrl =
+        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlduY1vt3BXg9eFp770mae8bjMi36YVPnbSaVkfU_4a53qghaVLuYBoq6rhS6gJ_Qx357uZqdeGKJK/pub?gid=863611613&single=true&output=csv";
+
+      let users = [];
+      let objects = [];
+      let leaderboardResults = {};
+      let userResults = {};
+      let wrCounts = {};
+      let currentTab = "leaderboard";
+      let top1Player = "";
+
+      async function fetchData(url, isObjects = false) {
+        try {
+          const response = await fetch(url);
+          const csvText = await response.text();
+          const lines = csvText.split("\n");
+          const data = [];
+          for (let i = 1; i < lines.length; i++) {
+            const cells = lines[i].split(",");
+            if (cells[0] && cells[0].trim() !== "") {
+              if (isObjects) {
+                data.push({ id: i, name: cells[0].trim() });
+              } else {
+                data.push(cells[0].trim());
+              }
+            }
+          }
+          return data;
+        } catch (error) {
+          console.error("Error:", error);
+          return [];
+        }
+      }
+
+      async function fetchResults() {
+        try {
+          const response = await fetch(leaderboardUrl);
+          const csvText = await response.text();
+          const lines = csvText.split("\n");
+
+          const allowedIds = new Set();
+          for (let i = 1; i < lines.length; i++) {
+            const cells = lines[i].split(",");
+            if (cells[3] && cells[3].trim() !== "") {
+              const parsed = parseInt(cells[3].trim(), 10);
+              if (!Number.isNaN(parsed)) {
+                allowedIds.add(parsed);
+              }
+            }
+          }
+
+          const results = [];
+          for (let i = 1; i < lines.length; i++) {
+            const cells = lines[i].split(",");
+
+            const rowId = i;
+
+            if (!allowedIds.has(rowId)) continue;
+
+            if (!(cells[0] && cells[1] && cells[2])) continue;
+
+            const objectIdRaw = parseInt(cells[0].trim(), 10);
+            const userIdRaw = parseInt(cells[1].trim(), 10);
+            const timeRaw = parseFloat(cells[2].trim());
+
+            if (
+              Number.isNaN(objectIdRaw) ||
+              Number.isNaN(userIdRaw) ||
+              Number.isNaN(timeRaw)
+            ) {
+              continue;
+            }
+
+            const objectId = objectIdRaw - 1;
+            const userId = userIdRaw - 1;
+            const time = timeRaw;
+
+            if (objects[objectId] && users[userId]) {
+              results.push({
+                objectId: objectId,
+                objectName: objects[objectId].name,
+                user: users[userId],
+                time: time,
+              });
+            }
+          }
+          return results;
+        } catch (error) {
+          console.error("Error:", error);
+          return [];
+        }
+      }
+
+      function groupByObject(results) {
+        const groups = {};
+        results.forEach((result) => {
+          const key = result.objectId;
+          if (!groups[key]) {
+            groups[key] = { name: result.objectName, results: [] };
+          }
+          groups[key].results.push(result);
+        });
+        Object.keys(groups).forEach((k) => {
+          groups[k].results.sort((a, b) => a.time - b.time);
+        });
+        return groups;
+      }
+
+      function groupByUser(results) {
+        const groups = {};
+        results.forEach((result) => {
+          const key = result.user;
+          if (!groups[key]) {
+            groups[key] = { results: [] };
+          }
+          groups[key].results.push({
+            objectName: result.objectName,
+            time: result.time,
+          });
+        });
+        return groups;
+      }
+
+      function calculateWRCounts(groups) {
+        const wrCounts = {};
+        Object.keys(groups).forEach((objectId) => {
+          const objectResults = groups[objectId].results;
+          if (objectResults.length > 0) {
+            const bestTime = objectResults[0].time;
+            const wrHolders = objectResults.filter(
+              (result) => Math.abs(result.time - bestTime) < 1e-9
+            );
+            wrHolders.forEach((holder) => {
+              if (!wrCounts[holder.user]) {
+                wrCounts[holder.user] = 0;
+              }
+              wrCounts[holder.user]++;
+            });
+          }
+        });
+        return wrCounts;
+      }
+
+      function getTop1Player(wrCounts) {
+        let topPlayer = "";
+        let maxCount = 0;
+        Object.entries(wrCounts).forEach(([user, count]) => {
+          if (count > maxCount) {
+            maxCount = count;
+            topPlayer = user;
+          }
+        });
+        return topPlayer;
+      }
+
+      function parseSearchQuery(query) {
+        query = query.trim();
+        if (/^\d+$/.test(query)) {
+          const num = parseInt(query);
+          return (count, user) => count === num;
+        }
+        if (/^>\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^>\s*(\d+)$/)[1]);
+          return (count, user) => count > num;
+        }
+        if (/^>=\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^>=\s*(\d+)$/)[1]);
+          return (count, user) => count >= num;
+        }
+        if (/^<\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^<\s*(\d+)$/)[1]);
+          return (count, user) => count < num;
+        }
+        if (/^<=\s*(\d+)$/.test(query)) {
+          const num = parseInt(query.match(/^<=\s*(\d+)$/)[1]);
+          return (count, user) => count <= num;
+        }
+        return (count, user) =>
+          user.toLowerCase().includes(query.toLowerCase());
+      }
+
+      function displayLeaderboard(groups) {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        let html = "";
+        let foundResults = false;
+        objects.forEach((object) => {
+          const objectName = object.name;
+          const key = object.id - 1;
+          if (searchTerm && !objectName.toLowerCase().includes(searchTerm))
+            return;
+          if (groups[key]) {
+            foundResults = true;
+            html += `<div class="section"><h2 class="section-title">${objectName}</h2>`;
+            let currentRank = 1;
+            let previousTime = null;
+            groups[key].results.forEach((result, index) => {
+              if (index === 0) {
+                currentRank = 1;
+                previousTime = result.time;
+              } else {
+                if (Math.abs(result.time - previousTime) > 1e-9) {
+                  currentRank++;
+                  previousTime = result.time;
+                }
+              }
+              const userNameClass =
+                result.user === top1Player ? "top-1-name" : "";
+              html += `<div class="score-item"><span class="user-name ${userNameClass}">${currentRank}. ${
+                result.user
+              }</span><span class="time">${result.time.toFixed(
+                2
+              )}s</span></div>`;
+            });
+            html += `</div>`;
+          }
+        });
+        if (!foundResults)
+          html = `<div class="no-results">No objects found</div>`;
+        document.getElementById("content").innerHTML = html;
+      }
+
+      function displayUsers() {
+        const searchTerm = document.getElementById("searchInput").value.trim();
+        const filterFunction = parseSearchQuery(searchTerm);
+
+        let sortedUsers = Object.entries(wrCounts)
+          .map(([user, count]) => ({ user, count }))
+          .sort((a, b) => b.count - a.count);
+
+        const usersWithRanks = [];
+        let currentRank = 1;
+        let previousCount = sortedUsers[0]?.count || 0;
+        for (let i = 0; i < sortedUsers.length; i++) {
+          if (i > 0 && sortedUsers[i].count < previousCount) {
+            currentRank++;
+            previousCount = sortedUsers[i].count;
+          }
+          usersWithRanks.push({
+            user: sortedUsers[i].user,
+            count: sortedUsers[i].count,
+            rank: currentRank,
+          });
+        }
+
+        const top5Players = new Set(
+          usersWithRanks.filter((p) => p.rank <= 5).map((p) => p.user)
+        );
+
+        let displayedUsers = usersWithRanks;
+        if (searchTerm) {
+          displayedUsers = usersWithRanks.filter((player) =>
+            filterFunction(player.count, player.user)
+          );
+        }
+
+        let html = "";
+        let foundResults = false;
+
+        if (displayedUsers.length === 0) {
+          html = `<div class="no-results">No users found</div>`;
+        } else {
+          for (let i = 0; i < displayedUsers.length; i++) {
+            const userData = displayedUsers[i];
+            const userName = userData.user;
+            const wrCount = userData.count;
+            const rank = userData.rank;
+
+            if (userResults[userName]) {
+              foundResults = true;
+
+              const isTopPlayer = top5Players.has(userName);
+              const isTop1Player = rank === 1;
+              const topClass = isTop1Player
+                ? "top-1-player"
+                : isTopPlayer
+                ? "top-player"
+                : "";
+
+              const userNameClass = isTop1Player ? "top-1-name" : "";
+
+              html += `
+                <div class="user-results ${topClass}" data-user-index="${i}">
+                  <div class="user-header" role="button" tabindex="0" aria-expanded="false">
+                    <div class="user-info">
+                      <span class="rank">${rank}.</span>
+                      <span class="${userNameClass}">${userName}</span>
+                      <span class="user-wr-count">${wrCount} WR</span>
+                    </div>
+                    <svg class="expand-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7 10l5 5 5-5z"/>
+                    </svg>
+                  </div>
+                  <div class="user-results-list" aria-hidden="true">
+              `;
+
+              userResults[userName].results.forEach((result, index) => {
+                html += `
+                  <div class="user-result-item">
+                    <span>${result.objectName}</span>
+                    <span class="time">${result.time.toFixed(2)}s</span>
+                  </div>
+                `;
+              });
+
+              html += `</div></div>`;
+            }
+          }
+        }
+
+        if (!foundResults)
+          html = `<div class="no-results">No users found</div>`;
+
+        document.getElementById("content").innerHTML = html;
+
+        document.querySelectorAll(".user-results-list").forEach((list) => {
+          list.style.height = "0px";
+        });
+        document.querySelectorAll(".user-header").forEach((header) => {
+          header.addEventListener("click", () => toggleUserResults(header));
+          header.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggleUserResults(header);
+            }
+          });
+        });
+      }
+
+      function toggleUserResults(header) {
+        const list = header.nextElementSibling;
+        const icon = header.querySelector(".expand-icon");
+        const isExpanded = header.getAttribute("aria-expanded") === "true";
+        const MAX_VISIBLE = 360;
+        const MIN_DURATION = 180;
+        const MAX_DURATION = 600;
+        const SPEED_PIXELS_PER_MS = 1.2;
+        if (isExpanded) {
+          const currentHeight = list.getBoundingClientRect().height;
+          list.style.height = currentHeight + "px";
+          list.offsetHeight;
+          const duration = Math.max(
+            MIN_DURATION,
+            Math.min(
+              MAX_DURATION,
+              Math.round(currentHeight / SPEED_PIXELS_PER_MS)
+            )
+          );
+          list.style.transition = `height ${duration}ms ease`;
+          requestAnimationFrame(() => {
+            list.style.height = "0px";
+          });
+          const onEnd = function () {
+            list.classList.remove("scrollable");
+            list.setAttribute("aria-hidden", "true");
+            header.setAttribute("aria-expanded", "false");
+            icon.classList.remove("expanded");
+            list.removeEventListener("transitionend", onEnd);
+            list.style.transition = "";
+          };
+          list.addEventListener("transitionend", onEnd);
+          header.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } else {
+          list.style.height = "auto";
+          const fullHeight = list.scrollHeight;
+          const duration = Math.max(
+            MIN_DURATION,
+            Math.min(MAX_DURATION, Math.round(fullHeight / SPEED_PIXELS_PER_MS))
+          );
+          if (fullHeight > MAX_VISIBLE) {
+            list.classList.add("scrollable");
+            list.setAttribute("aria-hidden", "false");
+            header.setAttribute("aria-expanded", "true");
+            icon.classList.add("expanded");
+            list.style.height = "0px";
+            list.offsetHeight;
+            list.style.transition = `height ${duration}ms ease`;
+            requestAnimationFrame(() => {
+              list.style.height = MAX_VISIBLE + "px";
+            });
+            const onEnd = function () {
+              list.removeEventListener("transitionend", onEnd);
+              list.style.transition = "";
+            };
+            list.addEventListener("transitionend", onEnd);
+            header.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          } else {
+            list.classList.remove("scrollable");
+            list.setAttribute("aria-hidden", "false");
+            header.setAttribute("aria-expanded", "true");
+            icon.classList.add("expanded");
+            list.style.height = "0px";
+            list.offsetHeight;
+            list.style.transition = `height ${duration}ms ease`;
+            requestAnimationFrame(() => {
+              list.style.height = fullHeight + "px";
+            });
+            const onEnd = function () {
+              list.style.height = "auto";
+              list.removeEventListener("transitionend", onEnd);
+              list.style.transition = "";
+            };
+            list.addEventListener("transitionend", onEnd);
+            header.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      }
+
+      function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        const btn = document.querySelector(`[data-tab="${tab}"]`);
+        if (btn) btn.classList.add("active");
+        displayContent();
+      }
+
+      function displayContent() {
+        switch (currentTab) {
+          case "users":
+            displayUsers();
+            break;
+          default:
+            displayLeaderboard(leaderboardResults);
+        }
+      }
+
+      function init() {
+        const searchInput = document.getElementById("searchInput");
+        searchInput.addEventListener("input", function () {
+          displayContent();
+        });
+        document.querySelectorAll(".tab-btn").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            switchTab(this.dataset.tab);
+          });
+        });
+        window.addEventListener("resize", () => {
+          document.querySelectorAll(".user-results-list").forEach((list) => {
+            const header = list.previousElementSibling;
+            const expanded =
+              header && header.getAttribute("aria-expanded") === "true";
+            if (!expanded) return;
+            if (list.classList.contains("scrollable")) {
+              return;
+            } else {
+              list.style.transition = "";
+              list.style.height = list.scrollHeight + "px";
+            }
+          });
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        users = await fetchData(usersUrl);
+        objects = await fetchData(objectsUrl, true);
+        const results = await fetchResults();
+        leaderboardResults = groupByObject(results);
+        userResults = groupByUser(results);
+        wrCounts = calculateWRCounts(leaderboardResults);
+        top1Player = getTop1Player(wrCounts);
+        displayContent();
+        init();
+      });
+    </script>
+  </body>
+</html>
