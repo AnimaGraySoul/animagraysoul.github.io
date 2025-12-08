@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -359,7 +359,7 @@
           if (objectResults.length > 0) {
             const bestTime = objectResults[0].time;
             const wrHolders = objectResults.filter(
-              (result) => Math.abs(result.time - bestTime) < 1e-9
+              (result) => Math.abs(result.time - bestTime) < 1e-9,
             );
             wrHolders.forEach((holder) => {
               if (!wrCounts[holder.user]) {
@@ -416,7 +416,12 @@
           .value.toLowerCase();
         let html = "";
         let foundResults = false;
-        objects.forEach((object) => {
+        const sortedObjects = objects
+          .slice()
+          .sort((a, b) =>
+            a.name.localeCompare(b.name, "pl", { sensitivity: "base" }),
+          );
+        sortedObjects.forEach((object) => {
           const objectName = object.name;
           const key = object.id - 1;
           if (searchTerm && !objectName.toLowerCase().includes(searchTerm))
@@ -441,7 +446,7 @@
               html += `<div class="score-item"><span class="user-name ${userNameClass}">${currentRank}. ${
                 result.user
               }</span><span class="time">${result.time.toFixed(
-                2
+                2,
               )}s</span></div>`;
             });
             html += `</div>`;
@@ -476,13 +481,13 @@
         }
 
         const top5Players = new Set(
-          usersWithRanks.filter((p) => p.rank <= 5).map((p) => p.user)
+          usersWithRanks.filter((p) => p.rank <= 5).map((p) => p.user),
         );
 
         let displayedUsers = usersWithRanks;
         if (searchTerm) {
           displayedUsers = usersWithRanks.filter((player) =>
-            filterFunction(player.count, player.user)
+            filterFunction(player.count, player.user),
           );
         }
 
@@ -506,8 +511,8 @@
               const topClass = isTop1Player
                 ? "top-1-player"
                 : isTopPlayer
-                ? "top-player"
-                : "";
+                  ? "top-player"
+                  : "";
 
               const userNameClass = isTop1Player ? "top-1-name" : "";
 
@@ -526,7 +531,15 @@
                   <div class="user-results-list" aria-hidden="true">
               `;
 
-              userResults[userName].results.forEach((result, index) => {
+              const sortedResults = (userResults[userName].results || [])
+                .slice()
+                .sort((a, b) =>
+                  (a.objectName || "").localeCompare(b.objectName || "", "pl", {
+                    sensitivity: "base",
+                  }),
+                );
+
+              sortedResults.forEach((result, index) => {
                 html += `
                   <div class="user-result-item">
                     <span>${result.objectName}</span>
@@ -575,8 +588,8 @@
             MIN_DURATION,
             Math.min(
               MAX_DURATION,
-              Math.round(currentHeight / SPEED_PIXELS_PER_MS)
-            )
+              Math.round(currentHeight / SPEED_PIXELS_PER_MS),
+            ),
           );
           list.style.transition = `height ${duration}ms ease`;
           requestAnimationFrame(() => {
@@ -597,7 +610,10 @@
           const fullHeight = list.scrollHeight;
           const duration = Math.max(
             MIN_DURATION,
-            Math.min(MAX_DURATION, Math.round(fullHeight / SPEED_PIXELS_PER_MS))
+            Math.min(
+              MAX_DURATION,
+              Math.round(fullHeight / SPEED_PIXELS_PER_MS),
+            ),
           );
           if (fullHeight > MAX_VISIBLE) {
             list.classList.add("scrollable");
