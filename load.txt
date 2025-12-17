@@ -1,0 +1,60 @@
+import aiohttp
+
+async def fetch_data():
+    users_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlduY1vt3BXg9eFp770mae8bjMi36YVPnbSaVkfU_4a53qghaVLuYBoq6rhS6gJ_Qx357uZqdeGKJK/pub?gid=0&single=true&output=csv"
+    objects_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlduY1vt3BXg9eFp770mae8bjMi36YVPnbSaVkfU_4a53qghaVLuYBoq6rhS6gJ_Qx357uZqdeGKJK/pub?gid=775717868&single=true&output=csv"
+    leaderboard_url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlduY1vt3BXg9eFp770mae8bjMi36YVPnbSaVkfU_4a53qghaVLuYBoq6rhS6gJ_Qx357uZqdeGKJK/pub?gid=863611613&single=true&output=csv"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(users_url) as response:
+            users_text = await response.text()
+            users = [
+                line.split(',')[0].strip()
+                for line in users_text.split('\n')[1:]
+                if line.strip() and line.split(',')[0].strip()
+            ]
+
+        async with session.get(objects_url) as response:
+            objects_text = await response.text()
+            objects = [
+                {'id': i, 'name': line.split(',')[0].strip()}
+                for i, line in enumerate(objects_text.split('\n')[1:], 1)
+                if line.strip() and line.split(',')[0].strip()
+            ]
+
+        async with session.get(leaderboard_url) as response:
+            leaderboard_text = await response.text()
+            lines = leaderboard_text.split('\n')
+
+            allowed_ids = set()
+            for i, line in enumerate(lines[1:], 1):
+                cells = line.split(',')
+                if len(cells) >= 4 and cells[3].strip():
+                    try:
+                        allowed_ids.add(int(cells[3].strip()))
+                    except ValueError:
+                        pass
+
+            results = []
+            for i, line in enumerate(lines[1:], 1):
+                if i not in allowed_ids:
+                    continue
+
+                cells = line.split(',')
+                if len(cells) >= 3:
+                    try:
+                        object_id = int(cells[0].strip()) - 1
+                        user_id = int(cells[1].strip()) - 1
+                        time = float(cells[2].strip())
+
+                        if 0 <= object_id < len(objects) and 0 <= user_id < len(users):
+                            results.append({
+                                'object_id': object_id,
+                                'object_name': objects[object_id]['name'],
+                                'user': users[user_id],
+                                'time': time
+                            })
+                    except (ValueError, IndexError):
+                        pass
+
+    return users, objects, results
